@@ -1,0 +1,57 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.email_verified == true && request.auth.token.email == 'salah77sofian@gmail.com';
+    }
+
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    function isValidProduct(data) {
+      return data.keys().hasAny(['name', 'price', 'category', 'skinTypes', 'benefit']) &&
+             data.name is string && data.name.size() <= 200 &&
+             data.price is string && data.price.size() <= 50 &&
+             data.category is string && data.category.size() <= 100 &&
+             data.skinTypes is list && data.skinTypes.size() <= 20 &&
+             (data.skinTypes.size() == 0 || data.skinTypes[0] is string) &&
+             data.benefit is string && data.benefit.size() <= 500 &&
+             (!('badge' in data.keys()) || (data.badge is string && data.badge.size() <= 50)) &&
+             (!('imageUrl' in data.keys()) || (data.imageUrl is string && data.imageUrl.size() <= 800000));
+    }
+
+    match /products/{productId} {
+      allow read: if true;
+      allow delete: if isAdmin();
+      allow create: if isAdmin() && isValidProduct(incoming());
+      allow update: if isAdmin() && isValidProduct(incoming()) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'price', 'category', 'skinTypes', 'benefit', 'badge', 'imageUrl'])
+      );
+    }
+    
+    function isValidSiteContent(data) {
+       return data.keys().hasAny(['heroTitle', 'heroSubtitle', 'storyTitle', 'storyText1', 'storyText2']) &&
+              (!('heroTitle' in data.keys()) || (data.heroTitle is string && data.heroTitle.size() <= 2000)) &&
+              (!('heroSubtitle' in data.keys()) || (data.heroSubtitle is string && data.heroSubtitle.size() <= 2000)) &&
+              (!('storyTitle' in data.keys()) || (data.storyTitle is string && data.storyTitle.size() <= 2000)) &&
+              (!('storyText1' in data.keys()) || (data.storyText1 is string && data.storyText1.size() <= 5000)) &&
+              (!('storyText2' in data.keys()) || (data.storyText2 is string && data.storyText2.size() <= 5000));
+    }
+
+    match /site/{docId} {
+      allow read: if true;
+      allow create: if isAdmin() && docId == 'content' && isValidSiteContent(incoming());
+      allow update: if isAdmin() && docId == 'content' && isValidSiteContent(incoming()) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['heroTitle', 'heroSubtitle', 'storyTitle', 'storyText1', 'storyText2'])
+      );
+    }
+  }
+}

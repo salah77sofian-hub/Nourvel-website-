@@ -5,25 +5,22 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ShoppingCart, Search, Menu, X, Leaf, MapPin, Star, ArrowRight, CheckCircle2, Loader2, Globe, Instagram, Facebook, MessageCircle, PlaySquare } from 'lucide-react';
+import { ShoppingCart, Search, Menu, X, Leaf, MapPin, Star, ArrowRight, CheckCircle2, Loader2, Globe, Instagram, Facebook, MessageCircle, PlaySquare, ShieldCheck, Mountain, Flower2, FlaskConical, Heart, Truck, Droplets, Scale, Sparkles, AlertCircle, Droplet, Palette } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
+import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
+import { useProductContext } from './context/ProductContext';
+import { useLanguage } from './context/LanguageContext';
+import { Admin } from './pages/Admin';
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || 'MISSING_API_KEY' });
 
 // --- DATA ---
-const PRODUCTS = [
-    { id: 1, name: 'Rhassoul Purifying Foam Cleanser', price: '1,890 DZD', category: 'Cleansers', skinTypes: ['Oily', 'Combination'], benefit: 'Draws out deep impurities.', badge: 'Bestseller' },
-    { id: 2, name: 'Argan Oil Gentle Milk Cleanser', price: '2,100 DZD', category: 'Cleansers', skinTypes: ['Dry', 'Normal'], benefit: 'Melts makeup without stripping.', badge: 'Bestseller' },
-    { id: 3, name: 'Rose & Clay Brightening Mask', price: '2,450 DZD', category: 'Masks', skinTypes: ['All Skin Types'], benefit: 'Instant radiance boost.' },
-    { id: 4, name: 'Atlas Mineral Balancing Toner', price: '1,750 DZD', category: 'Toners', skinTypes: ['Sensitive', 'Oily'], benefit: 'Minimizes pores gently.' },
-    { id: 5, name: 'Sahara Gold Nourishing Serum', price: '3,200 DZD', category: 'Serums', skinTypes: ['Dry', 'Mature'], benefit: 'Intense overnight repair.' },
-    { id: 6, name: 'Kabylie Herb Soothing Moisturizer', price: '2,680 DZD', category: 'Moisturizers', skinTypes: ['Sensitive', 'All Types'], benefit: 'Calms redness and repairs barrier.' }
-];
+// Products are now managed by ProductContext
 
 const INGREDIENTS = [
-    { name: 'Argan Oil', origin: 'From the forests of Tizi Ouzou, Kabylie', desc: "Called 'liquid gold' for centuries, our cold-pressed argan oil delivers intense moisture and antioxidant protection without clogging pores. The richest source of Vitamin E in nature.", icon: '🌿' },
-    { name: 'Rhassoul Clay', origin: 'From the Atlas Mountains, Northeast Algeria', desc: "Used in Algerian hammams for 1,400 years, this volcanic mineral clay draws out impurities from deep within pores, balances sebum production, and leaves skin impossibly smooth.", icon: '⛰️' },
-    { name: 'Rosa Damascena', origin: 'From the highlands of Sétif & Batna', desc: "Distilled at dawn when the petals hold their maximum essence, our Algerian rosewater soothes inflammation, tones, and delivers a natural radiance that no synthetic ingredient can replicate.", icon: '🌹' }
+    { name: 'Argan Oil', origin: 'From the forests of Tizi Ouzou, Kabylie', desc: "Called 'liquid gold' for centuries, our cold-pressed argan oil delivers intense moisture and antioxidant protection without clogging pores. The richest source of Vitamin E in nature.", icon: <Leaf className="w-16 h-16" /> },
+    { name: 'Rhassoul Clay', origin: 'From the Atlas Mountains, Northeast Algeria', desc: "Used in Algerian hammams for 1,400 years, this volcanic mineral clay draws out impurities from deep within pores, balances sebum production, and leaves skin impossibly smooth.", icon: <Mountain className="w-16 h-16" /> },
+    { name: 'Rosa Damascena', origin: 'From the highlands of Sétif & Batna', desc: "Distilled at dawn when the petals hold their maximum essence, our Algerian rosewater soothes inflammation, tones, and delivers a natural radiance that no synthetic ingredient can replicate.", icon: <Flower2 className="w-16 h-16" /> }
 ];
 
 const REVIEWS = [
@@ -34,7 +31,7 @@ const REVIEWS = [
 
 // --- COMPONENTS ---
 
-const FadeIn = ({ children, delay = 0, className = "" }) => (
+const FadeIn: React.FC<{ children: React.ReactNode, delay?: number, className?: string, key?: React.Key }> = ({ children, delay = 0, className = "" }) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
     whileInView={{ opacity: 1, y: 0 }}
@@ -49,6 +46,7 @@ const FadeIn = ({ children, delay = 0, className = "" }) => (
 const NavBar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { language, setLanguage, t } = useLanguage();
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
@@ -56,25 +54,36 @@ const NavBar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const toggleLanguage = () => {
+    const langs: ('en' | 'fr' | 'ar')[] = ['en', 'fr', 'ar'];
+    const nextIndex = (langs.indexOf(language) + 1) % langs.length;
+    setLanguage(langs[nextIndex]);
+  };
+
   return (
     <>
       <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-surface/80 backdrop-blur-md border-b border-border-warm py-4' : 'bg-transparent py-6'}`}>
         <div className="max-w-7xl mx-auto px-6 md:px-12 flex justify-between items-center">
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2 cursor-pointer">
-              <Leaf className="w-6 h-6 text-primary" />
-              <span className="font-serif text-2xl md:text-3xl tracking-wide text-primary font-semibold">Nourvel</span>
+              <Link to="/" className="flex items-center gap-2">
+                <Leaf className="w-6 h-6 text-primary" />
+                <span className="font-serif text-2xl md:text-3xl tracking-wide text-primary font-semibold">Nourvel</span>
+              </Link>
             </div>
             <div className="hidden md:flex gap-6 items-center uppercase tracking-[0.15em] text-[13px] font-medium text-ink-soft">
-              <span className="cursor-pointer hover:text-primary transition-colors">Home</span>
-              <span className="cursor-pointer hover:text-primary transition-colors">Shop</span>
-              <span className="cursor-pointer hover:text-primary transition-colors">Our Story</span>
-              <span className="cursor-pointer hover:text-primary transition-colors">Skin Guide</span>
+              <Link to="/" className="cursor-pointer hover:text-primary transition-colors">{t('home')}</Link>
+              <button onClick={() => document.getElementById('shop')?.scrollIntoView({ behavior: 'smooth' })} className="cursor-pointer hover:text-primary transition-colors">{t('shop')}</button>
+              <button onClick={() => document.getElementById('story')?.scrollIntoView({ behavior: 'smooth' })} className="cursor-pointer hover:text-primary transition-colors">{t('ourStory')}</button>
+              <button onClick={() => document.getElementById('guide')?.scrollIntoView({ behavior: 'smooth' })} className="cursor-pointer hover:text-primary transition-colors">{t('skinGuide')}</button>
+              {import.meta.env.VITE_HIDE_ADMIN !== 'true' && (
+                <Link to="/admin" className="cursor-pointer hover:text-primary transition-colors flex items-center gap-1 text-gold"><ShieldCheck className="w-4 h-4"/> Admin</Link>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-5">
-            <div className="hidden md:flex items-center gap-2 text-ink-soft text-sm uppercase tracking-widest cursor-pointer hover:text-primary transition-colors">
-              <Globe className="w-4 h-4" /> EN
+            <div onClick={toggleLanguage} className="flex items-center gap-2 text-ink-soft text-sm uppercase tracking-widest cursor-pointer hover:text-primary transition-colors">
+              <Globe className="w-5 h-5" /> <span className="hidden md:inline">{language}</span>
             </div>
             <Search className="w-5 h-5 text-ink-soft cursor-pointer hover:text-primary transition-colors" />
             <div className="relative cursor-pointer group">
@@ -90,9 +99,9 @@ const NavBar = () => {
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
-            initial={{ opacity: 0, x: '100%' }}
+            initial={{ opacity: 0, x: typeof window !== 'undefined' && document.dir === 'rtl' ? '-100%' : '100%' }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: '100%' }}
+            exit={{ opacity: 0, x: typeof window !== 'undefined' && document.dir === 'rtl' ? '-100%' : '100%' }}
             transition={{ type: "spring", bounce: 0, duration: 0.4 }}
             className="fixed inset-0 z-50 bg-background flex flex-col p-8"
           >
@@ -101,11 +110,14 @@ const NavBar = () => {
               <X className="w-8 h-8 text-ink cursor-pointer" onClick={() => setIsMobileMenuOpen(false)} />
             </div>
             <div className="flex flex-col gap-8 text-2xl font-serif text-ink">
-              <span className="cursor-pointer hover:text-primary">Home</span>
-              <span className="cursor-pointer hover:text-primary">Shop</span>
-              <span className="cursor-pointer hover:text-primary">Our Story</span>
-              <span className="cursor-pointer hover:text-primary">Skin Guide</span>
-              <span className="cursor-pointer hover:text-primary">Quiz</span>
+              <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="cursor-pointer hover:text-primary">{t('home')}</Link>
+              <button onClick={() => { setIsMobileMenuOpen(false); document.getElementById('shop')?.scrollIntoView({ behavior: 'smooth' }); }} className="text-left cursor-pointer hover:text-primary">{t('shop')}</button>
+              <button onClick={() => { setIsMobileMenuOpen(false); document.getElementById('story')?.scrollIntoView({ behavior: 'smooth' }); }} className="text-left cursor-pointer hover:text-primary">{t('ourStory')}</button>
+              {import.meta.env.VITE_HIDE_ADMIN !== 'true' && (
+                <Link to="/admin" onClick={() => setIsMobileMenuOpen(false)} className="cursor-pointer hover:text-primary text-gold flex items-center gap-2">
+                  <ShieldCheck className="w-6 h-6" /> Admin
+                </Link>
+              )}
             </div>
           </motion.div>
         )}
@@ -115,6 +127,9 @@ const NavBar = () => {
 };
 
 const Hero = () => {
+  const { siteContent } = useProductContext();
+  const { t } = useLanguage();
+
   return (
     <section className="relative min-h-screen pt-24 md:pt-0 flex items-center bg-background overflow-hidden">
       {/* Decorative botanical watermark SVG */}
@@ -135,20 +150,20 @@ const Hero = () => {
           >
             <div className="inline-flex items-center gap-2 bg-surface border border-border-warm rounded-full px-4 py-1.5 w-max">
               <span className="text-sm">🇩🇿</span>
-              <span className="text-xs uppercase tracking-[0.15em] font-medium text-primary">Proudly Algerian</span>
+              <span className="text-xs uppercase tracking-[0.15em] font-medium text-primary">{t('proudlyAlgerian')}</span>
             </div>
-            <h1 className="font-serif text-[42px] leading-[1.1] md:text-[72px] text-primary">
-              Skincare born<br />from Algerian soil.
+            <h1 className="font-serif text-[42px] leading-[1.1] md:text-[72px] text-primary whitespace-pre-line">
+              {siteContent.heroTitle}
             </h1>
-            <p className="text-lg md:text-xl text-ink-soft max-w-lg mb-4 leading-relaxed font-light">
-              Nourvel blends centuries of Algerian botanical wisdom with modern clean formulas — made for your skin, made right here.
+            <p className="text-lg md:text-xl text-ink-soft max-w-lg mb-4 leading-relaxed font-light whitespace-pre-line">
+              {siteContent.heroSubtitle}
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <button className="bg-primary text-white uppercase tracking-[0.15em] text-sm font-medium px-8 py-4 rounded-full hover:bg-opacity-90 transition-all ripple">
-                Discover the Collection
+              <button onClick={() => document.getElementById('shop')?.scrollIntoView({ behavior: 'smooth' })} className="bg-primary text-white uppercase tracking-[0.15em] text-sm font-medium px-8 py-4 rounded-full hover:bg-opacity-90 transition-all ripple text-center">
+                {t('discover')}
               </button>
-              <button className="border border-primary text-primary uppercase tracking-[0.15em] text-sm font-medium px-8 py-4 rounded-full hover:bg-surface transition-all">
-                Take the Skin Quiz
+              <button onClick={() => document.getElementById('guide')?.scrollIntoView({ behavior: 'smooth' })} className="border border-primary text-primary uppercase tracking-[0.15em] text-sm font-medium px-8 py-4 rounded-full hover:bg-surface transition-all text-center">
+                {t('takeQuiz')}
               </button>
             </div>
           </motion.div>
@@ -173,11 +188,12 @@ const Hero = () => {
 };
 
 const TrustBar = () => {
+  const { t } = useLanguage();
   const items = [
-    { icon: '🌿', text: '100% Algerian Formulas' },
-    { icon: '🧪', text: 'Dermatologist Tested' },
-    { icon: '🤍', text: 'Paraben & Sulfate Free' },
-    { icon: '🚚', text: 'Delivery Across Algeria' }
+    { icon: <Leaf className="w-5 h-5"/>, text: '100% Algerian Formulas' },
+    { icon: <FlaskConical className="w-5 h-5"/>, text: 'Dermatologist Tested' },
+    { icon: <Heart className="w-5 h-5"/>, text: 'Paraben & Sulfate Free' },
+    { icon: <Truck className="w-5 h-5"/>, text: 'Delivery Across Algeria' }
   ];
   return (
     <div className="bg-primary w-full py-5 px-6">
@@ -197,16 +213,30 @@ const TrustBar = () => {
 };
 
 const ProductSection = () => {
+  const { products } = useProductContext();
+  const { t } = useLanguage();
   const filters = ['All', 'Cleansers', 'Toners', 'Moisturizers', 'Masks', 'Serums'];
   const [activeFilter, setActiveFilter] = useState('All');
 
-  const filteredProducts = PRODUCTS.filter(p => activeFilter === 'All' || p.category === activeFilter);
+  const filteredProducts = products.filter(p => activeFilter === 'All' || p.category === activeFilter);
+
+  const getTranslatedFilter = (filter: string) => {
+    switch (filter) {
+      case 'All': return t('allProducts');
+      case 'Cleansers': return t('cleansers');
+      case 'Toners': return t('toners');
+      case 'Moisturizers': return t('moisturizers');
+      case 'Masks': return t('masks');
+      case 'Serums': return t('serums');
+      default: return filter;
+    }
+  };
 
   return (
-    <section className="py-24 bg-background px-6">
+    <section id="shop" className="py-24 bg-background px-6">
       <div className="max-w-7xl mx-auto">
         <FadeIn className="flex flex-col items-center mb-16">
-          <h2 className="font-serif text-4xl md:text-5xl text-primary mb-10 text-center">The Collection</h2>
+          <h2 className="font-serif text-4xl md:text-5xl text-primary mb-10 text-center">{t('theCollection')}</h2>
           <div className="flex flex-wrap justify-center gap-2 md:gap-4">
             {filters.map(filter => (
               <button
@@ -218,7 +248,7 @@ const ProductSection = () => {
                   : 'bg-transparent text-ink-soft hover:bg-surface border border-transparent'
                 }`}
               >
-                {filter}
+                {getTranslatedFilter(filter)}
               </button>
             ))}
           </div>
@@ -241,9 +271,15 @@ const ProductSection = () => {
                     {product.badge}
                   </div>
                 )}
-                <div className="h-[180px] w-full rounded-2xl bg-gradient-to-br from-[#EAE0D0] to-[#E0D5C5] mb-6 flex items-center justify-center">
-                  <span className="font-serif text-2xl text-ink/20 opacity-0 group-hover:opacity-100 transition-opacity">Nourvel</span>
-                </div>
+                {product.imageUrl ? (
+                  <div className="h-[180px] w-full rounded-2xl bg-border-warm mb-6 flex items-center justify-center overflow-hidden">
+                    <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="h-[180px] w-full rounded-2xl bg-gradient-to-br from-[#EAE0D0] to-[#E0D5C5] mb-6 flex items-center justify-center">
+                    <span className="font-serif text-2xl text-ink/20 opacity-0 group-hover:opacity-100 transition-opacity">Nourvel</span>
+                  </div>
+                )}
                 
                 <div className="flex flex-wrap gap-2 mb-4">
                   {product.skinTypes.map(type => (
@@ -270,7 +306,7 @@ const ProductSection = () => {
                 </div>
 
                 <button className="absolute bottom-6 left-6 right-6 bg-primary text-white uppercase tracking-widest text-[11px] font-bold py-3 px-4 rounded-full opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
-                  Add to Cart
+                  {t('addToCart')}
                 </button>
               </motion.div>
             ))}
@@ -282,6 +318,7 @@ const ProductSection = () => {
 };
 
 const AISkinFinder = () => {
+  const { t } = useLanguage();
   const [step, setStep] = useState(1);
   const [skinType, setSkinType] = useState('');
   const [concern, setConcern] = useState('');
@@ -289,15 +326,15 @@ const AISkinFinder = () => {
   const [result, setResult] = useState('');
 
   const SKIN_TYPES = [
-    { id: 'Oily', icon: '💧' }, { id: 'Dry', icon: '🌸' },
-    { id: 'Combination', icon: '⚖️' }, { id: 'Normal', icon: '✨' },
-    { id: 'Sensitive', icon: '🌿' }
+    { id: 'Oily', icon: <Droplets className="w-6 h-6" /> }, { id: 'Dry', icon: <Flower2 className="w-6 h-6" /> },
+    { id: 'Combination', icon: <Scale className="w-6 h-6" /> }, { id: 'Normal', icon: <Sparkles className="w-6 h-6" /> },
+    { id: 'Sensitive', icon: <Leaf className="w-6 h-6" /> }
   ];
 
   const CONCERNS = [
-    { id: 'Acne & Breakouts', icon: '🔴' }, { id: 'Dullness', icon: '🌟' },
-    { id: 'Dehydration', icon: '💦' }, { id: 'Large Pores', icon: '🫧' },
-    { id: 'Uneven Tone', icon: '🎨' }
+    { id: 'Acne & Breakouts', icon: <AlertCircle className="w-6 h-6" /> }, { id: 'Dullness', icon: <Star className="w-6 h-6" /> },
+    { id: 'Dehydration', icon: <Droplet className="w-6 h-6" /> }, { id: 'Large Pores', icon: <Sparkles className="w-6 h-6" /> },
+    { id: 'Uneven Tone', icon: <Palette className="w-6 h-6" /> }
   ];
 
   const handleGenerate = async () => {
@@ -340,21 +377,21 @@ Format with clear line breaks. Never recommend non-Nourvel products.`;
   };
 
   return (
-    <section className="py-24 bg-surface/50 border-y border-border-warm px-6 relative overflow-hidden">
+    <section id="guide" className="py-24 bg-surface/50 border-y border-border-warm px-6 relative overflow-hidden">
       <div className="absolute -left-32 -top-32 w-96 h-96 bg-gold/10 rounded-full blur-3xl" />
       <div className="absolute right-0 bottom-0 w-64 h-64 bg-secondary/10 rounded-full blur-3xl translate-y-1/2" />
 
       <div className="max-w-3xl mx-auto relative z-10 text-center flex flex-col items-center">
         <FadeIn>
-          <h2 className="font-serif text-4xl mb-4 text-primary">Find your perfect Nourvel ritual</h2>
-          <p className="text-ink-soft text-lg mb-12">Answer 2 quick questions — our AI skincare expert does the rest.</p>
+          <h2 className="font-serif text-4xl mb-4 text-primary">{t('findRitual')}</h2>
+          <p className="text-ink-soft text-lg mb-12">{t('aiSubtitle')}</p>
         </FadeIn>
 
         <div className="w-full bg-background rounded-[32px] p-8 md:p-12 shadow-sm border border-border-warm min-h-[400px] flex flex-col justify-center items-center relative transition-all duration-500">
           <AnimatePresence mode="wait">
             {step === 1 && (
               <motion.div key="step1" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="w-full">
-                <h3 className="font-serif text-2xl mb-8 text-ink">What's your skin type?</h3>
+                <h3 className="font-serif text-2xl mb-8 text-ink">{t('skinTypeQ')}</h3>
                 <div className="flex flex-wrap justify-center gap-4">
                   {SKIN_TYPES.map(type => (
                     <button
@@ -372,7 +409,7 @@ Format with clear line breaks. Never recommend non-Nourvel products.`;
 
             {step === 2 && (
               <motion.div key="step2" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="w-full">
-                <h3 className="font-serif text-2xl mb-8 text-ink">What's your main concern?</h3>
+                <h3 className="font-serif text-2xl mb-8 text-ink">{t('concernQ')}</h3>
                 <div className="flex flex-wrap justify-center gap-4 mb-10">
                   {CONCERNS.map(c => (
                     <button
@@ -390,10 +427,10 @@ Format with clear line breaks. Never recommend non-Nourvel products.`;
                   disabled={!concern}
                   className="bg-primary text-white uppercase tracking-widest text-sm font-bold py-4 px-10 rounded-full hover:bg-opacity-90 disabled:opacity-50 transition-all"
                 >
-                  Get My Ritual
+                  {t('getRitual')}
                 </button>
                 <div className="mt-4">
-                  <button onClick={() => setStep(1)} className="text-ink-soft text-sm underline hover:text-primary">Back</button>
+                  <button onClick={() => setStep(1)} className="text-ink-soft text-sm underline hover:text-primary">{t('back')}</button>
                 </div>
               </motion.div>
             )}
@@ -406,7 +443,7 @@ Format with clear line breaks. Never recommend non-Nourvel products.`;
                       <div className="w-16 h-16 border-4 border-surface border-t-secondary rounded-full animate-spin"></div>
                       <Leaf className="w-6 h-6 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                     </div>
-                    <p className="font-serif text-xl animate-pulse text-primary">Nora is designing your ritual...</p>
+                    <p className="font-serif text-xl animate-pulse text-primary">{t('noraDesigning')}</p>
                   </div>
                 ) : (
                   <div className="w-full relative">
@@ -415,10 +452,10 @@ Format with clear line breaks. Never recommend non-Nourvel products.`;
                     </div>
                     <div className="flex justify-center gap-4 mt-10">
                        <button onClick={() => { setStep(1); setSkinType(''); setConcern(''); }} className="uppercase tracking-widest text-[11px] font-bold py-3 px-6 rounded-full border border-primary text-primary hover:bg-surface transition-all">
-                        Retake Quiz
+                        {t('noraStartOver')}
                       </button>
                        <button className="bg-primary text-white uppercase tracking-widest text-[11px] font-bold py-3 px-6 rounded-full hover:bg-opacity-90 transition-all flex items-center gap-2">
-                        Shop Recommended
+                        {t('shop')}
                       </button>
                     </div>
                   </div>
@@ -433,11 +470,12 @@ Format with clear line breaks. Never recommend non-Nourvel products.`;
 };
 
 const IngredientsSpotlight = () => {
+  const { t } = useLanguage();
   return (
     <section className="py-24 bg-background px-6">
       <div className="max-w-5xl mx-auto">
         <FadeIn>
-          <h2 className="font-serif text-4xl md:text-5xl text-primary text-center mb-16">Ingredients with a story</h2>
+          <h2 className="font-serif text-4xl md:text-5xl text-primary text-center mb-16">{t('ingredientsStory')}</h2>
         </FadeIn>
         <div className="flex flex-col gap-6">
           {INGREDIENTS.map((ing, i) => (
@@ -461,8 +499,11 @@ const IngredientsSpotlight = () => {
 };
 
 const BrandStory = () => {
+  const { siteContent } = useProductContext();
+  const { t } = useLanguage();
+
   return (
-    <section className="py-24 bg-surface px-6 relative">
+    <section id="story" className="py-24 bg-surface px-6 relative">
       <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none overflow-hidden">
         <span className="font-serif text-[40vw] text-primary whitespace-nowrap leading-none right-0 absolute select-none">
           نقاء
@@ -477,18 +518,20 @@ const BrandStory = () => {
         </FadeIn>
         
         <FadeIn delay={0.2} className="flex flex-col gap-6 lg:pr-12">
-          <span className="uppercase tracking-[0.2em] font-semibold text-secondary text-sm">Our Story</span>
-          <h2 className="font-serif text-4xl md:text-5xl text-primary leading-tight">Made in Algeria.<br/>Made with purpose.</h2>
+          <span className="uppercase tracking-[0.2em] font-semibold text-secondary text-sm">{t('ourStory')}</span>
+          <h2 className="font-serif text-4xl md:text-5xl text-primary leading-tight whitespace-pre-line">
+            {siteContent.storyTitle}
+          </h2>
           <div className="text-ink-soft space-y-6 text-lg font-light leading-relaxed">
             <p>
-              Nourvel was born from a simple truth: Algerian women deserve skincare that was made for them, using ingredients that grow in their own land. Our founder spent three years working with Algerian botanists, dermatologists, and local farmers before the first formula was created.
+              {siteContent.storyText1}
             </p>
             <p>
-              Every Nourvel product is manufactured in our lab in Algiers, third-party tested, and certified safe for all skin types. We don't import trends. We formulate solutions — rooted in Algerian nature, proven by science.
+              {siteContent.storyText2}
             </p>
           </div>
           <button className="text-secondary hover:text-primary font-medium tracking-wide flex items-center gap-2 w-max transition-colors mt-4 pb-1 border-b-2 border-secondary/30 hover:border-primary">
-            Read Our Full Story <ArrowRight className="w-4 h-4" />
+            {t('readStory')} <ArrowRight className="w-4 h-4" />
           </button>
         </FadeIn>
       </div>
@@ -497,11 +540,12 @@ const BrandStory = () => {
 };
 
 const Testimonials = () => {
+  const { t } = useLanguage();
   return (
     <section className="py-24 bg-background px-6 overflow-hidden">
       <div className="max-w-7xl mx-auto">
         <FadeIn>
-          <h2 className="font-serif text-4xl md:text-5xl text-primary text-center mb-16">What Algerian women are saying</h2>
+          <h2 className="font-serif text-4xl md:text-5xl text-primary text-center mb-16">{t('whatTheySay')}</h2>
         </FadeIn>
         
         <div className="flex overflow-x-auto snap-x snap-mandatory gap-6 pb-12 hide-scrollbar md:grid md:grid-cols-3">
@@ -543,6 +587,7 @@ const Testimonials = () => {
 };
 
 const Newsletter = () => {
+  const { t } = useLanguage();
   return (
     <section className="bg-primary text-white py-24 px-6 relative overflow-hidden">
       {/* Botanical SVG Decoration */}
@@ -552,22 +597,22 @@ const Newsletter = () => {
       
       <div className="max-w-3xl mx-auto text-center relative z-10 flex flex-col items-center">
         <FadeIn>
-          <h2 className="font-serif text-4xl md:text-5xl mb-6">Join the Nourvel circle</h2>
+          <h2 className="font-serif text-4xl md:text-5xl mb-6">{t('joinCircle')}</h2>
           <p className="text-white/80 text-lg mb-10 max-w-lg mx-auto font-light leading-relaxed">
-            Skincare rituals, ingredient secrets & exclusive offers. Delivered to your inbox.
+            {t('joinDesc')}
           </p>
           <form className="flex flex-col sm:flex-row w-full max-w-md mx-auto gap-3" onSubmit={(e) => e.preventDefault()}>
             <input 
               type="email" 
-              placeholder="Your email address" 
+              placeholder={t('emailPlaceholder')} 
               required
               className="flex-grow px-6 py-4 rounded-full bg-white/10 border border-white/20 text-white placeholder:text-white/50 focus:outline-none focus:border-white/50 transition-colors"
             />
             <button type="submit" className="bg-secondary hover:bg-secondary/90 text-white uppercase tracking-widest text-sm font-bold py-4 px-8 rounded-full transition-all whitespace-nowrap">
-              Join
+              {t('join')}
             </button>
           </form>
-          <p className="text-xs text-white/50 mt-6 tracking-wide">No spam. Unsubscribe anytime. 🇩🇿</p>
+          <p className="text-xs text-white/50 mt-6 tracking-wide">{t('noSpam')} 🇩🇿</p>
         </FadeIn>
       </div>
     </section>
@@ -575,6 +620,7 @@ const Newsletter = () => {
 }
 
 const Footer = () => {
+  const { t } = useLanguage();
   return (
     <footer className="bg-background pt-20 pb-8 px-6 border-t border-border-warm">
       <div className="max-w-7xl mx-auto">
@@ -584,34 +630,34 @@ const Footer = () => {
                <Leaf className="w-5 h-5 text-primary" />
                <span className="font-serif text-2xl text-primary font-semibold">Nourvel</span>
             </div>
-            <p className="text-ink-soft text-sm mb-6 leading-relaxed">Pure roots. Modern radiance.</p>
-            <p className="text-xs uppercase tracking-widest font-semibold text-secondary">Made with 🤍 in Algeria</p>
+            <p className="text-ink-soft text-sm mb-6 leading-relaxed">{t('footerTagline')}</p>
+            <p className="text-xs uppercase tracking-widest font-semibold text-secondary">{t('madeWithLove')}</p>
           </div>
           
           <div>
-            <h4 className="font-serif text-lg text-primary mb-6">Shop</h4>
+            <h4 className="font-serif text-lg text-primary mb-6">{t('shop')}</h4>
             <ul className="space-y-4 text-sm text-ink-soft font-light">
-               <li><a href="#" className="hover:text-primary transition-colors">All Products</a></li>
-               <li><a href="#" className="hover:text-primary transition-colors">Cleansers</a></li>
-               <li><a href="#" className="hover:text-primary transition-colors">Moisturizers</a></li>
+               <li><a href="#" className="hover:text-primary transition-colors">{t('allProducts')}</a></li>
+               <li><a href="#" className="hover:text-primary transition-colors">{t('cleansers')}</a></li>
+               <li><a href="#" className="hover:text-primary transition-colors">{t('moisturizers')}</a></li>
                <li><a href="#" className="hover:text-primary transition-colors">Kits</a></li>
                <li><a href="#" className="hover:text-primary transition-colors">Bestsellers</a></li>
             </ul>
           </div>
           
           <div>
-            <h4 className="font-serif text-lg text-primary mb-6">Company</h4>
+            <h4 className="font-serif text-lg text-primary mb-6">{t('company')}</h4>
             <ul className="space-y-4 text-sm text-ink-soft font-light">
-               <li><a href="#" className="hover:text-primary transition-colors">Our Story</a></li>
+               <li><a href="#" className="hover:text-primary transition-colors">{t('ourStory')}</a></li>
                <li><a href="#" className="hover:text-primary transition-colors">Ingredients</a></li>
-               <li><a href="#" className="hover:text-primary transition-colors">Skin Guide</a></li>
+               <li><a href="#" className="hover:text-primary transition-colors">{t('skinGuide')}</a></li>
                <li><a href="#" className="hover:text-primary transition-colors">Blog</a></li>
                <li><a href="#" className="hover:text-primary transition-colors">Careers</a></li>
             </ul>
           </div>
           
           <div>
-            <h4 className="font-serif text-lg text-primary mb-6">Help & Contact</h4>
+            <h4 className="font-serif text-lg text-primary mb-6">{t('helpContact')}</h4>
             <ul className="space-y-4 text-sm text-ink-soft font-light">
                <li><a href="#" className="hover:text-primary transition-colors">FAQ</a></li>
                <li><a href="#" className="hover:text-primary transition-colors">Shipping Info</a></li>
@@ -635,10 +681,10 @@ const Footer = () => {
         </div>
         
         <div className="pt-8 border-t border-border-warm flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-ink-soft font-light">
-          <p>© 2025 Nourvel. All rights reserved.</p>
+          <p>{t('allRights')}</p>
           <div className="flex gap-6">
-            <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-primary transition-colors">Terms of Service</a>
+            <a href="#" className="hover:text-primary transition-colors">{t('privacy')}</a>
+            <a href="#" className="hover:text-primary transition-colors">{t('terms')}</a>
           </div>
         </div>
       </div>
@@ -648,16 +694,27 @@ const Footer = () => {
 
 export default function App() {
   return (
-    <div className="min-h-screen text-ink overflow-x-hidden selection:bg-gold/30">
+    <div className="min-h-screen text-ink overflow-x-hidden selection:bg-gold/30 flex flex-col">
       <NavBar />
-      <Hero />
-      <TrustBar />
-      <ProductSection />
-      <AISkinFinder />
-      <IngredientsSpotlight />
-      <BrandStory />
-      <Testimonials />
-      <Newsletter />
+      <div className="flex-grow">
+        <Routes>
+          <Route path="/" element={
+            <>
+              <Hero />
+              <TrustBar />
+              <ProductSection />
+              <AISkinFinder />
+              <IngredientsSpotlight />
+              <BrandStory />
+              <Testimonials />
+              <Newsletter />
+            </>
+          } />
+          {import.meta.env.VITE_HIDE_ADMIN !== 'true' && (
+            <Route path="/admin" element={<Admin />} />
+          )}
+        </Routes>
+      </div>
       <Footer />
     </div>
   );
